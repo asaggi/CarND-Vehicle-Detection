@@ -24,7 +24,7 @@ def train(car_features, noncar_features):
     X_train, X_test, y_train, y_test = train_test_split(scaled_X, y, test_size=0.1, random_state=rand_state)
 
     # Train using linear SVC
-    svc = LinearSVC()
+    svc = LinearSVC(C=0.001)
     # Log training time
     t = time.time()
     # Fit classifier to data
