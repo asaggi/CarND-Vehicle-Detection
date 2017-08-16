@@ -10,15 +10,20 @@ The goals / steps of this project are the following:
 * Estimate a bounding box for vehicles detected.
 
 [//]: # (Image References)
-[image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.jpg
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
+[image1]: ./output_images/vehicle_example.png
+[image2]: ./output_images/non-vehicle.png
 
+[image3]: ./output_images/hog1.jpg
+[image4]: ./output_images/hog6.jpg
+
+[image7]: ./output_images/output2.jpg
+[image8]: ./output_images/output4.jpg
+
+[image5]: ./output_images/heatmap1.jpg
+
+[video1]: ./output_images/project_video_output.mp4
+
+![alt text][image7] ![alt text][image8]
 ## File/Code Explanation
 
 * **code/combine_data.py**: Contains code for combining all image image files downloaded from [vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip) datasets to make extracting data during training easy.
@@ -30,7 +35,7 @@ The goals / steps of this project are the following:
 
 ###Solution
 
-####1. Overview
+### Overview
 
 The steps taken to complete this project are as follows:
 
@@ -40,69 +45,43 @@ The steps taken to complete this project are as follows:
 - Create a heatmap of recurring detections to reduce false positives.  
 - Output visual display of bounding boxes around detected vehicles in a video stream.
 
-####2. Feature Extraction
+####1. Feature Extraction
 
 The first step of the pipeline is to identify and extract features from the data, which we can then train a classifier on to predict the presence of vehicles in an image. The dataset is a combination of [vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip), and examples extracted from the project video itself. The data is split into vehicles and non-vehicles subsets, and examples of a vehicle image (left) and non-vehicle image (right) can be seen below:
 
-I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
+![alt text][image1] ![alt text][image2]
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Features were extracted using a combination of `Histogram Of Gradients (HOG)`, spatial binning of the color image, and histogram of pixel intensity (color histogram). The HOG features were found using the `sklearn hog()` function, and the parameters used were found by trial and error. Some of the parameters I found to be most effective were: orient=9, pixels_per_cell=(8, 8), and cells_per_block=(2, 2).  
+The code for extracting the HOG features can be found on lines 9-26 of the `code/features.py` file. The function `bin_spatial()` was used to resize the images to 32x32 resolution and transform it into a vector, and the code can be found on lines 29-33 of the `code/features.py` file. The code for creating a color histogram of the images can be found in the function `color_hist()` on lines 36-43 of the `code/features.py` file. I wrapped all of these functions in the `extract_features()` function, which outputs one feature vector for each image. A visualization of HOG features of a vehicle (left) and non-vehicle (right) can be seen below:
 
+![alt text][image3] ![alt text][image4]
 
-![alt text][image2]
+####2. Train a Classifier
 
-####2. Explain how you settled on your final choice of HOG parameters.
+Once the features were extracted from the images, I used them to train a classifier for detecting vehicles in an image. I used a `Linear SVM` as my classifier, feeding in the normalized feature vectors for vehicles and non-vehicles. Normalization was performed using the `sklearn StandardScaler()` function (`code/classifier.py` line: 15). The data was also selected randomly using the sklearn `train_test_split()` function (`code/classifier.py` line: 24), and 10% of the data was held out as the test set. All of the code for training the classifier can be found in the `code/classifier.py` file.
 
-I tried various combinations of parameters and...
+####3. Sliding Window Search
 
-####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
+I implemented a sliding window technique to search a portion of an image to predict whether or not a vehicle was present. In order to increase efficiency, I reduced the search area by setting a region of interest which excluded the top half of the image, and also reduced the image size by 1.5. As the window slides along the search area, the classifier is used to predict whether or not a vehicle is present based on the features in that sample. The code for detecting cars can be found in the `find_cars()` function on lines 23-86 of the `code/detect_cars.py` file.
 
-I trained a linear SVM using...
+####4. False Positive reduction
 
-###Sliding Window Search
+In order to reduce false positives, and make the bounding boxes more consistent and smoother between frames of a video stream, I used a heatmap of the positive detections reported by the classifier. I keep an average of the heatmaps over 15 frames of video, and use a threshold to remove false positives. The scipy label() function was used to identify "blobs" in the heatmap, which correlated to vehicles in the image. The code for adding the detections to the heatmap can be found on line 84 of the `code/detect_cars.py` file, and the function which applies the threshold can be found on lines 89-92 of the same file. An example of an input image (left) and a heatmap applied to that image (right) is shown below:
 
-####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+![alt text][image8] ![alt text][image5]
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+####5. Video Implementation
 
-![alt text][image3]
+Bounding boxes are displayed on the images around detected cars using the `draw_labeled_bboxes()` function in the `code/detect_cars.py` file. This function is passed the labels aka blobs of the heatmaps mentioned above. By using an average of the heatmaps over 15 frames of video, the result is a smooth and consistent bounding box around vehicles without any false positives in the project video.
 
-####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
-
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
-
-![alt text][image4]
----
-
-### Video Implementation
-
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
-
-
-####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
-
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
-
-Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
-
-### Here are six frames and their corresponding heatmaps:
-
-![alt text][image5]
-
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
-
+Here's a [link to my video result](./output_images/project_video_output.mp4)
 
 ---
 
 ###Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
-
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+- I have a system with I7 2.9 GHz processor with 16GB of RAM and Intel HD Graphics 530 1536 MB.  Although this pipeline works well on the project video, it does not process the video in real time, so it is currently not a suitable production pipeline.    
+- My machine was able to process the video slowly. I plan to explore more modern approaches which are able to perform detection in real time, such as SSD and YOLO.        
+- Another issue my pipeline faces is detecting cars which are occluded by another vehicle. There is a segment of the project video where two cars driving next to each other are detected as one vehicle, producing only one bounding box around the two cars.  
+- Finally, my pipeline currently does not detect vehicles which are relatively far away. Ideally the pipeline should be able to detect any car in the camera's view, just as humans are able to see what traffic is doing up ahead. 
 
