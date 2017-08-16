@@ -1,15 +1,10 @@
-##Writeup Template
-###You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
+##CarND-Vehicle-Detection
 
 **Vehicle Detection Project**
 
 The goals / steps of this project are the following:
 
 * Perform a Histogram of Oriented Gradients (HOG) feature extraction on a labeled training set of images and train a classifier Linear SVM classifier
-* Optionally, you can also apply a color transform and append binned color features, as well as histograms of color, to your HOG feature vector. 
-* Note: for those first two steps don't forget to normalize your features and randomize a selection for training and testing.
 * Implement a sliding-window technique and use your trained classifier to search for vehicles in images.
 * Run your pipeline on a video stream (start with the test_video.mp4 and later implement on full project_video.mp4) and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
 * Estimate a bounding box for vehicles detected.
@@ -24,25 +19,30 @@ The goals / steps of this project are the following:
 [image7]: ./examples/output_bboxes.png
 [video1]: ./project_video.mp4
 
-## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
-###Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+## File/Code Explanation
 
----
-###Writeup / README
+* **code/combine_data.py**: Contains code for combining all image image files downloaded from [vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip) datasets to make extracting data during training easy.
+* **code/combine_data.py**: Contains code that will save the combined data in `output_images/cars.txt` and `output_images/non_cars.txt`.   
+* **code/features.py**: Contains code for extracting the features on which to train a classifier for detecting cars. It will save the features in separate files named `output_images/car_features.p` and `output_images/noncar_features.p`
+* **code/classifier.py**: Contains code for training a linear SVM classifier on the extracted car and non-car features. It will save the classifier and scaler to use when making predictions.  
+* **code/visualize.py**: Contains code for visualizing different features, heatmaps, and bounding boxes from test images. It will save images as described above in the `output_images`folder.
+* **code/detect_cars.py**: Contains code for detecting vehicles using the trained classifier and drawing bounding boxes around them in a video. It will run the classifier on `project_video.mp4` and save a new video named `output_images/project_video_output.mp4` with bounding boxes drawn around detect cars.
 
-####1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
+###Solution
 
-You're reading it!
+####1. Overview
 
-###Histogram of Oriented Gradients (HOG)
+The steps taken to complete this project are as follows:
 
-####1. Explain how (and identify where in your code) you extracted HOG features from the training images.
+- Perform feature extraction using Histogram of Oriented Gradients (HOG), apply a color transform and append binned color features, as well as histograms of color, to the HOG feature vector.  
+- Train a Linear Support Vector Machine (SVM) classifier on the extracted features.  
+- Implement a sliding-window technique with the trained classifier to detect vehicles in an image.  
+- Create a heatmap of recurring detections to reduce false positives.  
+- Output visual display of bounding boxes around detected vehicles in a video stream.
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+####2. Feature Extraction
 
-I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
-
-![alt text][image1]
+The first step of the pipeline is to identify and extract features from the data, which we can then train a classifier on to predict the presence of vehicles in an image. The dataset is a combination of [vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/vehicles.zip) and [non-vehicle](https://s3.amazonaws.com/udacity-sdc/Vehicle_Tracking/non-vehicles.zip), and examples extracted from the project video itself. The data is split into vehicles and non-vehicles subsets, and examples of a vehicle image (left) and non-vehicle image (right) can be seen below:
 
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
